@@ -1,5 +1,6 @@
 # backups
 todoist_backup_*
+todoist_ai_export_*
 
 # binary
 todoist-backup

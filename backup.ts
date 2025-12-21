@@ -1,9 +1,9 @@
 /**
  * Todoist Smart Backup & AI-Export Script (Bun + TypeScript)
  *
- * 1. Downloads full Sync API v9 data.
- * 2. Restructures data into a hierarchical tree (Project -> Section -> Task).
- * 3. Cleans noise (IDs, timestamps) for better AI token efficiency.
+ * 1. Downloads full Sync API v9 data (Projects, Items, Labels, Filters).
+ * 2. Restructures data into a hierarchical tree.
+ * 3. Exports global definitions for Labels and Filters.
  */
 
 const API_TOKEN = process.env.TODOIST_API_TOKEN;
@@ -17,8 +17,8 @@ if (!API_TOKEN) {
 interface CleanTask {
   content: string;
   description?: string;
-  priority: string; // "p1" (Normal) to "p4" (Urgent)
-  due?: string; // "2023-10-01" or "every day"
+  priority: string;
+  due?: string;
   is_completed: boolean;
   labels: string[];
   subtasks: CleanTask[];
@@ -32,9 +32,31 @@ interface CleanSection {
 interface CleanProject {
   project: string;
   is_archived: boolean;
-  view_style: string; // "list" or "board"
+  view_style: string;
   sections: CleanSection[];
-  tasks: CleanTask[]; // Tasks directly in project (no section)
+  tasks: CleanTask[];
+}
+
+interface CleanFilter {
+  name: string;
+  query: string;
+}
+
+interface FullExport {
+  meta: {
+    generated_at: string;
+    stats: {
+      total_projects: number;
+      total_tasks: number;
+      total_labels: number;
+      total_filters: number;
+    };
+  };
+  global_definitions: {
+    available_labels: string[];
+    available_filters: CleanFilter[];
+  };
+  projects_tree: CleanProject[];
 }
 
 async function performBackup() {
@@ -49,7 +71,8 @@ async function performBackup() {
       },
       body: new URLSearchParams({
         sync_token: "*",
-        resource_types: '["projects", "items", "sections", "labels"]',
+        resource_types:
+          '["projects", "items", "sections", "labels", "filters"]',
       }),
     });
 
@@ -66,35 +89,39 @@ async function performBackup() {
     const aiReadyData = processForAI(rawData);
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-
     const cleanFilename = `todoist_ai_export_${timestamp}.json`;
     await Bun.write(cleanFilename, JSON.stringify(aiReadyData, null, 2));
 
     console.log(`✅ Export successful!`);
     console.log(`📂 AI Context File: ${cleanFilename}`);
 
-    console.table({
-      Projects: aiReadyData.length,
-      "Total Tasks": rawData.items.length,
-    });
+    console.table(aiReadyData.meta.stats);
   } catch (error) {
     console.error("❌ Backup failed:", error);
   }
 }
 
-function processForAI(data: any): CleanProject[] {
+function processForAI(data: any): FullExport {
   const labelMap = new Map<string, string>();
-  data.labels.forEach((l: any) => labelMap.set(l.id, l.name));
+  const allLabelNames: string[] = [];
 
-  const projectMap = new Map<string, any>();
-  data.projects.forEach((p: any) => projectMap.set(p.id, p));
+  data.labels
+    .sort((a: any, b: any) => a.item_order - b.item_order)
+    .forEach((l: any) => {
+      labelMap.set(l.id, l.name);
+      allLabelNames.push(l.name);
+    });
 
-  const sectionMap = new Map<string, any>();
-  data.sections.forEach((s: any) => sectionMap.set(s.id, s));
+  const allFilters: CleanFilter[] = data.filters
+    .filter((f: any) => !f.is_deleted)
+    .sort((a: any, b: any) => a.item_order - b.item_order)
+    .map((f: any) => ({
+      name: f.name,
+      query: f.query,
+    }));
 
   const itemMap = new Map<string, any>();
   const rootItems: any[] = [];
-
   const sortedRawItems = data.items.sort(
     (a: any, b: any) => a.child_order - b.child_order,
   );
@@ -103,7 +130,7 @@ function processForAI(data: any): CleanProject[] {
     if (item.is_deleted) return;
 
     const cleanItem = {
-      id: item.id, // kept temporarily for linking
+      id: item.id, // temp
       project_id: item.project_id,
       section_id: item.section_id,
       parent_id: item.parent_id,
@@ -131,7 +158,6 @@ function processForAI(data: any): CleanProject[] {
   });
 
   const projectsTree: CleanProject[] = [];
-
   const itemsByProjectAndSection = new Map<
     string,
     { noSection: any[]; sections: Map<string, any[]> }
@@ -162,35 +188,42 @@ function processForAI(data: any): CleanProject[] {
       if (p.is_deleted) return;
 
       const projGroup = itemsByProjectAndSection.get(p.id);
-
       const projectSections: CleanSection[] = [];
       const rawSections = data.sections.filter(
         (s: any) => s.project_id === p.id && !s.is_deleted,
       );
-      rawSections.sort((a: any, b: any) => a.section_order - b.section_order);
 
+      rawSections.sort((a: any, b: any) => a.section_order - b.section_order);
       rawSections.forEach((s: any) => {
         const tasks = projGroup?.sections.get(s.id) || [];
-        if (tasks.length > 0) {
-          projectSections.push({
-            name: s.name,
-            tasks: tasks,
-          });
-        }
+        projectSections.push({ name: s.name, tasks: tasks });
       });
 
-      const cleanProject: CleanProject = {
+      projectsTree.push({
         project: p.name,
         is_archived: p.is_archived,
         view_style: p.view_style,
         sections: projectSections,
         tasks: projGroup?.noSection || [],
-      };
-
-      projectsTree.push(cleanProject);
+      });
     });
 
-  return projectsTree;
+  return {
+    meta: {
+      generated_at: new Date().toISOString(),
+      stats: {
+        total_projects: projectsTree.length,
+        total_tasks: data.items.length,
+        total_labels: allLabelNames.length,
+        total_filters: allFilters.length,
+      },
+    },
+    global_definitions: {
+      available_labels: allLabelNames,
+      available_filters: allFilters,
+    },
+    projects_tree: projectsTree,
+  };
 }
 
 function removeInternalIds(item: any): CleanTask {
