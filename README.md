@@ -11,5 +11,5 @@ export TODOIST_API_TOKEN="your_token_here"
 To build the binary, run this script:
 
 ```
-bun build ./backup.ts --compile --outfile todoist-backup
+bun build ./backup.ts --compile --outfile todoist-dump
 ```
