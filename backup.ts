@@ -90,7 +90,7 @@ async function performBackup() {
     const aiReadyData = processForAI(rawData);
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const cleanFilename = `todoist_ai_export_${timestamp}.json`;
+    const cleanFilename = `todoist_ai_export_${timestamp}.txt`;
     await Bun.write(cleanFilename, JSON.stringify(aiReadyData, null, 2));
 
     console.log(`✅ Export successful!`);
