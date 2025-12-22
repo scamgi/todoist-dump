@@ -2,7 +2,7 @@
  * Todoist Smart Backup & AI-Export Script (Bun + TypeScript)
  *
  * 1. Downloads full Sync API v9 data (Projects, Items, Labels, Filters).
- * 2. Restructures data into a hierarchical tree.
+ * 2. Restructures data into a hierarchical tree (Tasks and Projects).
  * 3. Exports global definitions for Labels and Filters.
  */
 
@@ -35,6 +35,7 @@ interface CleanProject {
   view_style: string;
   sections: CleanSection[];
   tasks: CleanTask[];
+  sub_projects: CleanProject[];
 }
 
 interface CleanFilter {
@@ -157,7 +158,6 @@ function processForAI(data: any): FullExport {
     }
   });
 
-  const projectsTree: CleanProject[] = [];
   const itemsByProjectAndSection = new Map<
     string,
     { noSection: any[]; sections: Map<string, any[]> }
@@ -182,37 +182,65 @@ function processForAI(data: any): FullExport {
     }
   });
 
-  data.projects
-    .sort((a: any, b: any) => a.child_order - b.child_order)
-    .forEach((p: any) => {
-      if (p.is_deleted) return;
+  const projectMap = new Map<string, any>();
+  const rootProjects: any[] = [];
 
-      const projGroup = itemsByProjectAndSection.get(p.id);
-      const projectSections: CleanSection[] = [];
-      const rawSections = data.sections.filter(
-        (s: any) => s.project_id === p.id && !s.is_deleted,
-      );
+  data.projects.forEach((p: any) => {
+    if (p.is_deleted) return;
 
-      rawSections.sort((a: any, b: any) => a.section_order - b.section_order);
-      rawSections.forEach((s: any) => {
-        const tasks = projGroup?.sections.get(s.id) || [];
-        projectSections.push({ name: s.name, tasks: tasks });
-      });
+    const projGroup = itemsByProjectAndSection.get(p.id);
+    const projectSections: CleanSection[] = [];
+    const rawSections = data.sections.filter(
+      (s: any) => s.project_id === p.id && !s.is_deleted,
+    );
 
-      projectsTree.push({
-        project: p.name,
-        is_archived: p.is_archived,
-        view_style: p.view_style,
-        sections: projectSections,
-        tasks: projGroup?.noSection || [],
-      });
+    rawSections.sort((a: any, b: any) => a.section_order - b.section_order);
+    rawSections.forEach((s: any) => {
+      const tasks = projGroup?.sections.get(s.id) || [];
+      projectSections.push({ name: s.name, tasks: tasks });
     });
+
+    const tempProject = {
+      _id: p.id,
+      _parentId: p.parent_id,
+      _childOrder: p.child_order,
+      project: p.name,
+      is_archived: p.is_archived,
+      view_style: p.view_style,
+      sections: projectSections,
+      tasks: projGroup?.noSection || [],
+      sub_projects: [],
+    };
+
+    projectMap.set(p.id, tempProject);
+  });
+
+  projectMap.forEach((p) => {
+    if (p._parentId && projectMap.has(p._parentId)) {
+      const parent = projectMap.get(p._parentId);
+      parent.sub_projects.push(p);
+    } else {
+      rootProjects.push(p);
+    }
+  });
+
+  function finalizeProject(p: any): CleanProject {
+    if (p.sub_projects.length > 0) {
+      p.sub_projects.sort((a: any, b: any) => a._childOrder - b._childOrder);
+      p.sub_projects = p.sub_projects.map(finalizeProject);
+    }
+    const { _id, _parentId, _childOrder, ...clean } = p;
+    return clean as CleanProject;
+  }
+
+  rootProjects.sort((a: any, b: any) => a._childOrder - b._childOrder);
+  const finalProjectsTree = rootProjects.map(finalizeProject);
 
   return {
     meta: {
       generated_at: new Date().toISOString(),
       stats: {
-        total_projects: projectsTree.length,
+        total_projects: data.projects.length,
         total_tasks: data.items.length,
         total_labels: allLabelNames.length,
         total_filters: allFilters.length,
@@ -222,7 +250,7 @@ function processForAI(data: any): FullExport {
       available_labels: allLabelNames,
       available_filters: allFilters,
     },
-    projects_tree: projectsTree,
+    projects_tree: finalProjectsTree,
   };
 }
 
