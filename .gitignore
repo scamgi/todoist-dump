@@ -4,3 +4,6 @@ todoist_ai_export_*
 
 # binary
 todoist-dump
+
+# node
+node_modules/
