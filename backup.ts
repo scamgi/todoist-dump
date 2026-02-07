@@ -48,14 +48,13 @@ async function performBackup() {
       `✅ Download complete. Processing ${rawData.items.length} items...`,
     );
 
-    // Process json to make it readable for AI.
-    // const aiReadyData = processForAI(rawData);
-    const aiReadyData = TodoistSyncResponseSchema.parse(rawData);
+    // Parse raw data with Zod
+    const parsedRawData = TodoistSyncResponseSchema.parse(rawData);
 
     // Saving the readable AI string to a file.
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
     const cleanFilename = `todoist_ai_export_${timestamp}.txt`;
-    await Bun.write(cleanFilename, JSON.stringify(aiReadyData, null, 2));
+    await Bun.write(cleanFilename, JSON.stringify(parsedRawData, null, 2));
 
     // logging
     console.log(`✅ Export successful!`);
