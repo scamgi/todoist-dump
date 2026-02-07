@@ -32,17 +32,17 @@ export function formatFilters(filters: TodoistFilter[]): string {
 }
 
 /**
- * Formats the list of Filters.
+ * Formats a single Todoist filter into a markdown list item.
+ * @throws Error if name or query is missing.
  */
 export function formatFilter(filter: TodoistFilter): string {
-  if (
-    filter.name === null ||
-    filter.name === "" ||
-    filter.query === null ||
-    filter.query === ""
-  )
-    throw new Error("filter is null or name or query are null");
-  return `- ${filter.name}: ${filter.query}`;
+  const { name, query } = filter;
+
+  if (!name || !query) {
+    throw new Error(`filter is null or name or query are null`);
+  }
+
+  return `- ${name}: ${query}`;
 }
 
 /**
