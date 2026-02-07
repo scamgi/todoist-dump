@@ -27,8 +27,15 @@ export function formatFilters(filters: TodoistFilter[]): string {
   const activeFilters = filters.filter((f) => !f.is_deleted);
   if (activeFilters.length === 0) return "";
 
-  const lines = activeFilters.map((f) => `- ${f.name}: ${f.query}`);
+  const lines = activeFilters.map(formatFilter);
   return "# List of filters\n" + lines.join("\n");
+}
+
+/**
+ * Formats the list of Filters.
+ */
+export function formatFilter(filter: TodoistFilter): string {
+  return `- ${filter.name}: ${filter.query}`;
 }
 
 /**
