@@ -1,20 +1,7 @@
 import { describe, test, expect } from "bun:test";
 import { formatFilter, formatFilters } from "./processor";
 import { TodoistFilter } from "./interfaces";
-
-const createFilter = (
-  overrides: Partial<TodoistFilter> = {},
-): TodoistFilter => ({
-  color: "charcoal",
-  id: "test-id",
-  is_deleted: false,
-  is_favorite: false,
-  is_frozen: false,
-  item_order: 1,
-  name: "Default Filter",
-  query: "#default",
-  ...overrides,
-});
+import { createFilter } from "./test-utils";
 
 describe("Data Processor: formatFilters", () => {
   test("should return empty string when input is an empty array", () => {
