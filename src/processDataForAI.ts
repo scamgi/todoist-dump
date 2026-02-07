@@ -48,12 +48,28 @@ export default function processDataForAI(rawData: TodoistSyncResponse) {
       items
         .sort((a, b) => a.child_order - b.child_order)
         .forEach((item) => {
-          // Visual priority indicator (4 is highest in API)
-          const priorityMark =
-            item.priority === 4 ? "🔴 " : item.priority === 3 ? "🟠 " : "";
+          // Map API priority (4=High/Red) to User labels (P1-P4)
+          let priorityLabel = "";
+          switch (item.priority) {
+            case 4:
+              priorityLabel = "P1 ";
+              break; // Red
+            case 3:
+              priorityLabel = "P2 ";
+              break; // Yellow
+            case 2:
+              priorityLabel = "P3 ";
+              break; // Blue
+            case 1:
+              priorityLabel = "P4 ";
+              break; // Standard
+            default:
+              priorityLabel = "";
+          }
+
           const dueString = item.due ? ` 📅 ${item.due.date}` : "";
 
-          markdown += `- ${priorityMark}${item.content}${dueString}\n`;
+          markdown += `- ${priorityLabel}${item.content}${dueString}\n`;
 
           if (item.description) {
             markdown += `  > ${item.description}\n`;
@@ -69,7 +85,7 @@ export default function processDataForAI(rawData: TodoistSyncResponse) {
 
     // B. Print tasks inside sections
     sections.forEach((section) => {
-      markdown += `\n### 📂 ${section.name}\n`;
+      markdown += `\n### Section: ${section.name}\n`;
 
       const sectionTasks = projectItems.filter(
         (i) => i.section_id === section.id,

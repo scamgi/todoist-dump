@@ -145,4 +145,3 @@ export const TodoistSyncResponseSchema = z.object({
 export type TodoistSyncResponse = z.infer<typeof TodoistSyncResponseSchema>;
 export type TodoistItem = z.infer<typeof TodoistItemSchema>;
 export type TodoistProject = z.infer<typeof TodoistProjectSchema>;
-// ... export other types if you need them specifically
