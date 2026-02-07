@@ -7,7 +7,7 @@
  */
 
 import { TodoistSyncResponseSchema } from "./src/interfaces";
-import processor from "./src/processDataForAI";
+import processor from "./src/processor";
 
 const API_TOKEN = process.env.TODOIST_API_TOKEN;
 const SYNC_URL = "https://api.todoist.com/sync/v9/sync";
