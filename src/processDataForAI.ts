@@ -67,9 +67,15 @@ export default function processDataForAI(rawData: TodoistSyncResponse) {
               priorityLabel = "";
           }
 
-          const dueString = item.due ? ` 📅 ${item.due.date}` : "";
+          // Format Due Date
+          const dueString = item.due ? ` 📅 Do: ${item.due.date}` : "";
 
-          markdown += `- ${priorityLabel}${item.content}${dueString}\n`;
+          // Format Deadline
+          const deadlineString = item.deadline
+            ? ` ⏳ Deadline: ${item.deadline.date}`
+            : "";
+
+          markdown += `- ${priorityLabel}${item.content}${dueString}${deadlineString}\n`;
 
           if (item.description) {
             markdown += `  > ${item.description}\n`;
