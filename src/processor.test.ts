@@ -1,130 +1,58 @@
-import { describe, test, expect, mock, beforeAll, afterAll } from "bun:test";
+import { describe, test, expect } from "bun:test";
 import { formatFilter, formatFilters } from "./processor";
 import { TodoistFilter } from "./interfaces";
 
-describe("Data Processor", () => {
-  test("formatFilters should format filters correctly", () => {
-    const input: TodoistFilter[] = [
-      {
-        color: "Green",
-        id: "bla bla bla",
-        is_deleted: false,
-        is_favorite: false,
-        is_frozen: false,
-        item_order: 1,
-        name: "Nome del mio mitico filtro",
-        query: "#ciao",
-      },
-      {
-        color: "Yellow",
-        id: "bla bla bla",
-        is_deleted: true,
-        is_favorite: false,
-        is_frozen: false,
-        item_order: 1,
-        name: "yays",
-        query: "#ciao",
-      },
-      {
-        color: "Orange",
-        id: "bla bla bla",
-        is_deleted: false,
-        is_favorite: false,
-        is_frozen: false,
-        item_order: 1,
-        name: "dhsgdsahd",
-        query: "#ciao",
-      },
+const createFilter = (
+  overrides: Partial<TodoistFilter> = {},
+): TodoistFilter => ({
+  color: "charcoal",
+  id: "test-id",
+  is_deleted: false,
+  is_favorite: false,
+  is_frozen: false,
+  item_order: 1,
+  name: "Default Filter",
+  query: "#default",
+  ...overrides,
+});
+
+describe("Data Processor: formatFilters", () => {
+  test("should return empty string when input is an empty array", () => {
+    expect(formatFilters([])).toBe("");
+  });
+
+  test("should return empty string if ALL items are deleted", () => {
+    const input = [
+      createFilter({ name: "F1", is_deleted: true }),
+      createFilter({ name: "F2", is_deleted: true }),
+    ];
+
+    expect(formatFilters(input)).toBe("");
+  });
+
+  test("should format active filters correctly and ignore deleted ones", () => {
+    const input = [
+      createFilter({ name: "Work", query: "#work", is_deleted: false }),
+      createFilter({ name: "Deleted", query: "#old", is_deleted: true }),
+      createFilter({ name: "Personal", query: "#me", is_deleted: false }),
     ];
 
     const result = formatFilters(input);
 
-    expect(result).toBeString();
-    expect(result).toStartWith("# List of filters\n");
+    const expected = `# List of filters
+- Work: #work
+- Personal: #me`;
 
-    const expectedIncludedResult = input
-      .filter((f) => !f.is_deleted)
-      .map(formatFilter)
-      .join("\n");
-    expect(result).toContain(expectedIncludedResult);
+    expect(result).toBe(expected);
   });
 
-  test("formatFilters should start with title", () => {
-    const input: TodoistFilter[] = [
-      {
-        color: "Green",
-        id: "bla bla bla",
-        is_deleted: false,
-        is_favorite: false,
-        is_frozen: false,
-        item_order: 1,
-        name: "Nome del mio mitico filtro",
-        query: "#ciao",
-      },
-      {
-        color: "Yellow",
-        id: "bla bla bla",
-        is_deleted: true,
-        is_favorite: false,
-        is_frozen: false,
-        item_order: 1,
-        name: "yays",
-        query: "#ciao",
-      },
-      {
-        color: "Orange",
-        id: "bla bla bla",
-        is_deleted: false,
-        is_favorite: false,
-        is_frozen: false,
-        item_order: 1,
-        name: "dhsgdsahd",
-        query: "#ciao",
-      },
-    ];
-
-    const result = formatFilters(input);
-
-    expect(result).toBeString();
-    expect(result).toStartWith("# List of filters\n");
-  });
-
-  test("formatFilters should return empty string when the input is empty array", () => {
-    const input = [];
-
-    const result = formatFilters(input);
-
-    expect(result).toBeString();
-    expect(result).toEqual("");
-  });
-
-  test("formatFilters should not contain deleted items", () => {
-    const input: TodoistFilter[] = [
-      {
-        color: "Green",
-        id: "bla bla bla",
-        is_deleted: false,
-        is_favorite: false,
-        is_frozen: false,
-        item_order: 1,
-        name: "Nome del mio mitico filtro",
-        query: "#ciao",
-      },
-      {
-        color: "Green",
-        id: "bla bla bla",
-        is_deleted: true,
-        is_favorite: false,
-        is_frozen: false,
-        item_order: 1,
-        name: "filter 2",
-        query: "#hey",
-      },
+  test("should handle special characters in names and queries", () => {
+    const input = [
+      createFilter({ name: "Complex & Name", query: "@label | !#project" }),
     ];
 
     const result = formatFilters(input);
 
     expect(result).toContain(formatFilter(input[0]));
-    expect(result).not.toContain(formatFilter(input[1]));
   });
 });
