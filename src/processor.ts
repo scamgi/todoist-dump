@@ -35,6 +35,13 @@ export function formatFilters(filters: TodoistFilter[]): string {
  * Formats the list of Filters.
  */
 export function formatFilter(filter: TodoistFilter): string {
+  if (
+    filter.name === null ||
+    filter.name === "" ||
+    filter.query === null ||
+    filter.query === ""
+  )
+    throw new Error("filter is null or name or query are null");
   return `- ${filter.name}: ${filter.query}`;
 }
 
