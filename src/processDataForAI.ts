@@ -10,7 +10,7 @@ import {
 /**
  * Main entry point. Orchestrates the formatting of the entire export.
  */
-export default function processDataForAI(rawData: TodoistSyncResponse): string {
+export default function processor(rawData: TodoistSyncResponse): string {
   const parts = [
     formatFilters(rawData.filters),
     formatLabels(rawData.labels),

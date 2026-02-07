@@ -6,11 +6,8 @@
  * 3. Exports global definitions for Labels and Filters.
  */
 
-import {
-  TodoistSyncResponse,
-  TodoistSyncResponseSchema,
-} from "./src/interfaces";
-import processDataForAI from "./src/processDataForAI";
+import { TodoistSyncResponseSchema } from "./src/interfaces";
+import processor from "./src/processDataForAI";
 
 const API_TOKEN = process.env.TODOIST_API_TOKEN;
 const SYNC_URL = "https://api.todoist.com/sync/v9/sync";
@@ -53,7 +50,7 @@ async function performBackup() {
     const parsedRawData = TodoistSyncResponseSchema.parse(rawData);
 
     // Process the data to markdown.
-    const processedData = processDataForAI(parsedRawData);
+    const processedData = processor(parsedRawData);
 
     // Saving the readable AI string to a file.
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
