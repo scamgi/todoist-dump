@@ -10,6 +10,7 @@ import {
   TodoistSyncResponse,
   TodoistSyncResponseSchema,
 } from "./src/interfaces";
+import processDataForAI from "./src/processDataForAI";
 
 const API_TOKEN = process.env.TODOIST_API_TOKEN;
 const SYNC_URL = "https://api.todoist.com/sync/v9/sync";
@@ -51,10 +52,13 @@ async function performBackup() {
     // Parse raw data with Zod
     const parsedRawData = TodoistSyncResponseSchema.parse(rawData);
 
+    // Process the data to markdown.
+    const processedData = processDataForAI(parsedRawData);
+
     // Saving the readable AI string to a file.
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
     const cleanFilename = `todoist_ai_export_${timestamp}.txt`;
-    await Bun.write(cleanFilename, JSON.stringify(parsedRawData, null, 2));
+    await Bun.write(cleanFilename, processedData);
 
     // logging
     console.log(`✅ Export successful!`);
