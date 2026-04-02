@@ -10,7 +10,7 @@ import { TodoistSyncResponseSchema } from "./src/interfaces";
 import processor from "./src/processor";
 
 const API_TOKEN = process.env.TODOIST_API_TOKEN;
-const SYNC_URL = "https://api.todoist.com/sync/v9/sync";
+const SYNC_URL = "https://api.todoist.com/api/v1/sync";
 
 if (!API_TOKEN) {
   console.error("Error: TODOIST_API_TOKEN environment variable is not set.");
