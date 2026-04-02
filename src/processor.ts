@@ -27,8 +27,22 @@ export function formatFilters(filters: TodoistFilter[]): string {
   const activeFilters = filters.filter((f) => !f.is_deleted);
   if (activeFilters.length === 0) return "";
 
-  const lines = activeFilters.map((f) => `- ${f.name}: ${f.query}`);
+  const lines = activeFilters.map(formatFilter);
   return "# List of filters\n" + lines.join("\n");
+}
+
+/**
+ * Formats a single Todoist filter into a markdown list item.
+ * @throws Error if name or query is missing.
+ */
+export function formatFilter(filter: TodoistFilter): string {
+  const { name, query } = filter;
+
+  if (!name || !query) {
+    throw new Error(`filter is null or name or query are null`);
+  }
+
+  return `- ${name}: ${query}`;
 }
 
 /**
