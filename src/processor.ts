@@ -147,7 +147,7 @@ export function formatTaskList(items: TodoistItem[]): string {
 }
 
 /**
- * Formats a single task line, including priority, due date, and description.
+ * Formats a single task line, including priority, due date, deadline, and labels.
  */
 export function formatSingleTask(item: TodoistItem): string {
   const priorityLabel = getPriorityLabel(item.priority);
@@ -155,8 +155,10 @@ export function formatSingleTask(item: TodoistItem): string {
   const deadlineString = item.deadline
     ? ` ⏳ Deadline: ${item.deadline.date}`
     : "";
+  const labelsString =
+    item.labels.length > 0 ? ` 🏷️ Labels: ${item.labels.join(", ")}` : "";
 
-  let markdown = `- ${priorityLabel}${item.content}${dueString}${deadlineString}\n`;
+  let markdown = `- ${priorityLabel}${item.content}${dueString}${deadlineString}${labelsString}\n`;
 
   if (item.description) {
     markdown += `  > ${item.description}\n`;
